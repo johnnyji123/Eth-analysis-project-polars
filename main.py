@@ -15,7 +15,12 @@ df = pl.from_pandas(df)
 
 # find volume over time
 df = df.with_columns(
-    pl.col("Date").dt.year() 
+    pl.col("Date").dt.year(),
+    pl.col("Open").round(decimals = 2),
+    pl.col("High").round(decimals = 2),
+    pl.col("Low").round(decimals = 2),
+    pl.col("Close").round(decimals = 2),
+    pl.col("Adj Close").round(decimals = 2)
     )   
 
 
@@ -117,9 +122,28 @@ avg_price
 merged_avg_std_df = avg_price.join(close_std, on = "Date", how = "outer")
 merged_avg_std_df = merged_avg_std_df.with_columns(
         pl.col("Close std").round(decimals = 2),
-        (pl.col("Close std") / pl.col("avg close")).alias("Coefficient variation"),
-        pl.col("Coefficient variation").round(decimals = 2)
+        (pl.col("Close std") / pl.col("avg close")).alias("Coefficient variation")
     
 )
-         
+
+# 2020 Coefficient variation was the highest - was the most volatile year in terms of closing prices
+# 2020 Coefficient variation not close to 0 = indicates closing prices did deviate quite a bit from average. 
+# This indicates there were quite a number of fluctuations in closing prices in this year
+# 2023 the least volatile year - Coefficient variation was the lowest in this year
+# Indicates that closing prices were more stable - closing prices were not far off from the mean
+
+merged_avg_std_df = merged_avg_std_df.with_columns(pl.col("Coefficient variation").round(decimals = 2))
+merged_avg_std_df = merged_avg_std_df.sort("Coefficient variation", descending = True) 
+merged_avg_std_df
+             
+
+# Calculating 200 day MA to determine volatility
+# MA consistently below closing price = shows upward trend - recent closing prices = higher than historical average
+# MA above closing price from later half of 2021 = shows bearish trend - recent closing prices = lower than historical average price
+df = df.with_columns(
+    pl.col("Close").rolling_mean(window_size = 200).alias("200 day MA")
         
+    )
+
+sns.lineplot(x = "Date", y = "Close", label = "closing price", data = df)
+sns.lineplot(x = "Date", y = "200 day MA", label = "200 day MA", data = df)
