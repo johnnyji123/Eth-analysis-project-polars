@@ -86,14 +86,40 @@ pct_change_price_df = avg_df.select(
 
         
 # Measuring volatility based on standard deviation and mean
-volatility_df = avg_df.with_columns(
+volatility_df = df.with_columns(
         pl.col("Open").round(decimals = 2),
         pl.col("High").round(decimals = 2),
         pl.col("Low").round(decimals = 2),
         pl.col("Close").round(decimals = 2),
-        pl.col("Adj Close").round(decimals = 2),
-        pl.col("Voume").round(decimals = 2)
+        pl.col("Adj Close").round(decimals = 2)
     
     )
 
 volatility_df
+
+close_std = volatility_df.groupby("Date").agg(
+        pl.col("Close").std().alias("Close std")
+    
+    )
+
+close_std = close_std.sort("Date", descending = False)
+
+avg_price = volatility_df.groupby("Date").agg(
+        pl.col("Close").mean().round(decimals = 2).alias("avg close")
+    )
+
+
+avg_price = avg_price.sort("Date", descending = False)
+avg_price
+
+
+# merge avg price and std df
+merged_avg_std_df = avg_price.join(close_std, on = "Date", how = "outer")
+merged_avg_std_df = merged_avg_std_df.with_columns(
+        pl.col("Close std").round(decimals = 2),
+        (pl.col("Close std") / pl.col("avg close")).alias("Coefficient variation"),
+        pl.col("Coefficient variation").round(decimals = 2)
+    
+)
+         
+        
