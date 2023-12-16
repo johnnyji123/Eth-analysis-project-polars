@@ -4,6 +4,8 @@ import seaborn as sns
 import yfinance as yf
 from datetime import datetime
 import matplotlib.pyplot as plt
+from fbprophet import Prophet
+
 
 cryptocurrency = ["ETH-USD"]
 
@@ -59,7 +61,7 @@ volume_change_over_time_df = avg_df.select(
     pl.col("Volume"),
     (pl.col("Volume").pct_change() * 100).alias("pct change volume")
     )
-
+    
     
 
 # price trends over time
@@ -81,6 +83,9 @@ def plot_price_over_time(df):
     
 # 2021 had the greatest pct change in price 
 # In 2022 and 2023 price has been decreasing
+# Pct changes in price are quite huge indicating volatility
+# You're likely to make more gains but that also comes with the risk of greater losses
+# However, throughout the years, we can see the upside has been greater than the downside
 pct_change_price_df = avg_df.select(
     pl.col("Date"),
     pl.col("Close"),
@@ -142,8 +147,38 @@ merged_avg_std_df
 # MA above closing price from later half of 2021 = shows bearish trend - recent closing prices = lower than historical average price
 df = df.with_columns(
     pl.col("Close").rolling_mean(window_size = 200).alias("200 day MA")
-        
+            
     )
 
 sns.lineplot(x = "Date", y = "Close", label = "closing price", data = df)
 sns.lineplot(x = "Date", y = "200 day MA", label = "200 day MA", data = df)
+
+
+price_volume_df = avg_df.select(
+    pl.col("Date"),
+    pl.col("Close"),    
+    pl.col("Volume")
+    )
+
+# Calculating Correlation coefficient between price and volume
+# Correlation Coefficient is 0.75 which is positive and quite high which shows strong correlation
+# Price and volume are likely to be strongly related, as one variable increases, so will the other
+price_volume_df = price_volume_df.with_columns(
+        pl.corr("Close", "Volume").alias("Correlation coefficient")
+    )
+
+price_volume_df = price_volume_df.with_columns(pl.col("Correlation coefficient").round(decimals = 2))
+price_volume_df
+
+
+predict_future_prices_df = df.select(
+        pl.col("Date"),
+        pl.col("Close")
+    )
+
+predict_future_prices_df = predict_future_prices_df.to_pandas()
+predict_future_prices_df
+    
+model = Prophet()
+model.fit(predict_future_prices_df)
+
