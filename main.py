@@ -50,8 +50,7 @@ avg_df = avg_df.with_columns(
     pl.col("Low").round(decimals = 2),
     pl.col("Close").round(decimals = 2),    
     pl.col("Adj Close").round(decimals = 2),
-    pl.col("Volume").round(decimals = 2)
-    
+    pl.col("Volume").round(decimals = 2)   
     )
 
 
@@ -63,7 +62,6 @@ volume_change_over_time_df = avg_df.select(
     )
     
     
-
 # price trends over time plotted using sesaborn
 price_over_time = sns.lineplot(x = "Date", y = "Close", data = avg_df)
 price_over_time.set(title = "Price over time", ylabel = "Closing price")
@@ -76,7 +74,6 @@ def plot_price_over_time(df):
         for row in point_coordinates.to_pandas().itertuples(index = False):
             plt.text(row.Date, row.Close, f"{row.Close}", ha = "left", va = "bottom")
 
-            
 plot_price_over_time(avg_df)     
     
 
@@ -89,14 +86,12 @@ pct_change_price_df = avg_df.select(
     )      
 
 
-        
 volatility_df = df.with_columns(
         pl.col("Open").round(decimals = 2),
         pl.col("High").round(decimals = 2),
         pl.col("Low").round(decimals = 2),
         pl.col("Close").round(decimals = 2),
-        pl.col("Adj Close").round(decimals = 2)
-    
+        pl.col("Adj Close").round(decimals = 2)  
     )
 
 volatility_df
@@ -127,7 +122,7 @@ merged_avg_std_df = merged_avg_std_df.with_columns(
         pl.col("Close std").round(decimals = 2),
         (pl.col("Close std") / pl.col("avg close")).alias("Coefficient variation")
     
-)   
+        )   
 
 
 # Finding the Coefficient Variation
@@ -138,8 +133,7 @@ merged_avg_std_df
 
 # Finding 200 day Moving average across all years
 df = df.with_columns(
-    pl.col("Close").rolling_mean(window_size = 200).alias("200 day MA")
-            
+    pl.col("Close").rolling_mean(window_size = 200).alias("200 day MA")            
     )
 
 # Plotting close price and MA on lineplot
