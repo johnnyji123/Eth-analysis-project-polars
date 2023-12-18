@@ -5,10 +5,12 @@ import yfinance as yf
 from datetime import datetime
 import matplotlib.pyplot as plt
 from fbprophet import Prophet
+import pystan
 
 
 cryptocurrency = ["ETH-USD"]
 
+# Connecting to Yfinance API
 df = yf.download(cryptocurrency, period = '5y')
 df = df.reset_index()
 df = pl.from_pandas(df)
@@ -25,7 +27,7 @@ df = df.with_columns(
     pl.col("Adj Close").round(decimals = 2)
     )   
 
-
+# Calculating the averages of all the columns
 avg_df = df.group_by("Date").agg(
         pl.col("Open").mean(),
         pl.col("High").mean(),
@@ -38,9 +40,10 @@ avg_df = df.group_by("Date").agg(
 
 avg_df = avg_df.sort("Date", descending = False)
 
+# Converting Scientific notation to float
 pl.Config(set_fmt_float = "full")
 
-    
+# Rounding decimals to 2    
 avg_df = avg_df.with_columns(
     pl.col("Open").round(decimals = 2),
     pl.col("High").round(decimals = 2),
@@ -52,10 +55,7 @@ avg_df = avg_df.with_columns(
     )
 
 
-# Volume was still increasing between 2019 to 2021 but there is a diminishing rate of growth
-# Pct increase is still postivie but decreasing
-# From 2022-2023 pct change is negative - indicating a decrease in volume
-# 2019 Had the greatest increase in volume, 2023 had the greatest decrease in volume  
+# Analysing volume over time
 volume_change_over_time_df = avg_df.select(
     pl.col("Date"),
     pl.col("Volume"),
@@ -64,14 +64,12 @@ volume_change_over_time_df = avg_df.select(
     
     
 
-# price trends over time
+# price trends over time plotted using sesaborn
 price_over_time = sns.lineplot(x = "Date", y = "Close", data = avg_df)
 price_over_time.set(title = "Price over time", ylabel = "Closing price")
 
-# Annotated the price on the lineplot
-# Price has steadily increased from 2018 to 2020
-# From 2020-2021 there was a sharp increase in price
-# Price gradually decreasing from 2021-2023
+
+# Function to Annotate the lineplot with its values
 def plot_price_over_time(df):
     for year in df["Date"].unique().to_list():
         point_coordinates = df.filter(pl.col("Date") == year)
@@ -79,13 +77,10 @@ def plot_price_over_time(df):
             plt.text(row.Date, row.Close, f"{row.Close}", ha = "left", va = "bottom")
 
             
-#plot_price_over_time(avg_df)     
+plot_price_over_time(avg_df)     
     
-# 2021 had the greatest pct change in price 
-# In 2022 and 2023 price has been decreasing
-# Pct changes in price are quite huge indicating volatility
-# You're likely to make more gains but that also comes with the risk of greater losses
-# However, throughout the years, we can see the upside has been greater than the downside
+
+# Caclulating pct change in price
 pct_change_price_df = avg_df.select(
     pl.col("Date"),
     pl.col("Close"),
@@ -95,7 +90,6 @@ pct_change_price_df = avg_df.select(
 
 
         
-# Measuring volatility based on standard deviation and mean
 volatility_df = df.with_columns(
         pl.col("Open").round(decimals = 2),
         pl.col("High").round(decimals = 2),
@@ -107,6 +101,8 @@ volatility_df = df.with_columns(
 
 volatility_df
 
+
+# Measuring volatility based on standard deviation and mean
 close_std = volatility_df.groupby("Date").agg(
         pl.col("Close").std().alias("Close std")
     
@@ -114,6 +110,8 @@ close_std = volatility_df.groupby("Date").agg(
 
 close_std = close_std.sort("Date", descending = False)
 
+
+# Finding the average close price
 avg_price = volatility_df.groupby("Date").agg(
         pl.col("Close").mean().round(decimals = 2).alias("avg close")
     )
@@ -129,40 +127,35 @@ merged_avg_std_df = merged_avg_std_df.with_columns(
         pl.col("Close std").round(decimals = 2),
         (pl.col("Close std") / pl.col("avg close")).alias("Coefficient variation")
     
-)
+)   
 
-# 2020 Coefficient variation was the highest - was the most volatile year in terms of closing prices
-# 2020 Coefficient variation not close to 0 = indicates closing prices did deviate quite a bit from average. 
-# This indicates there were quite a number of fluctuations in closing prices in this year
-# 2023 the least volatile year - Coefficient variation was the lowest in this year
-# Indicates that closing prices were more stable - closing prices were not far off from the mean
 
+# Finding the Coefficient Variation
 merged_avg_std_df = merged_avg_std_df.with_columns(pl.col("Coefficient variation").round(decimals = 2))
 merged_avg_std_df = merged_avg_std_df.sort("Coefficient variation", descending = True) 
 merged_avg_std_df
              
 
-# Calculating 200 day MA to determine volatility
-# MA consistently below closing price = shows upward trend - recent closing prices = higher than historical average
-# MA above closing price from later half of 2021 = shows bearish trend - recent closing prices = lower than historical average price
+# Finding 200 day Moving average across all years
 df = df.with_columns(
     pl.col("Close").rolling_mean(window_size = 200).alias("200 day MA")
             
     )
 
+# Plotting close price and MA on lineplot
 sns.lineplot(x = "Date", y = "Close", label = "closing price", data = df)
 sns.lineplot(x = "Date", y = "200 day MA", label = "200 day MA", data = df)
 
 
+# Selecting relevant columns
 price_volume_df = avg_df.select(
     pl.col("Date"),
     pl.col("Close"),    
     pl.col("Volume")
     )
 
+
 # Calculating Correlation coefficient between price and volume
-# Correlation Coefficient is 0.75 which is positive and quite high which shows strong correlation
-# Price and volume are likely to be strongly related, as one variable increases, so will the other
 price_volume_df = price_volume_df.with_columns(
         pl.corr("Close", "Volume").alias("Correlation coefficient")
     )
@@ -171,14 +164,5 @@ price_volume_df = price_volume_df.with_columns(pl.col("Correlation coefficient")
 price_volume_df
 
 
-predict_future_prices_df = df.select(
-        pl.col("Date"),
-        pl.col("Close")
-    )
 
-predict_future_prices_df = predict_future_prices_df.to_pandas()
-predict_future_prices_df
-    
-model = Prophet()
-model.fit(predict_future_prices_df)
 
