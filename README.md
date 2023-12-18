@@ -1,5 +1,6 @@
 ### Ethereum (ETH) Price Analysis Project
-### Overview: This project utilizes Python along with the libraries Polars, Seaborn, Matplotlib, and Yfinance to analyze and visualize the historical performance of Ethereum (ETH) cryptocurrency. The project covers various aspects, including price trends, volatility, correlation between price and volume. The project starts by fetching historical data for Ethereum using the Yahoo Finance API (yfinance library). The data is then converted into a Polars DataFrame for efficient manipulation.
+### Overview: This project utilizes Python along with the libraries Polars, Seaborn, Matplotlib, and Yfinance to analyze and visualize the historical performance of Ethereum (ETH) cryptocurrency. The project covers various aspects, including price trends, volatility, correlation between price and volume. 
+
 ### Technologies used:
 * Python
 * Polars
@@ -18,7 +19,7 @@
 ### Volatility:
 * Volatility is measured using standard deviation and mean of closing prices.
 * Coefficient of variation is calculated to determine the stability of closing prices.
-* 
+  
 ### Moving Average and Trend Analysis
 * A 200-day Moving Average (MA) is calculated to determine trends.
 * The project visualizes closing prices alongside the 200-day MA to identify trends.
@@ -28,7 +29,8 @@
 * The project explores the relationship between price and volume.
 
 
- ### Conclusion from my analysis
+
+ ### Conclusion from my analysis:
 
  ### Volume Analysis
  * Overall, the volume of Ethereum increased from 2019 to 2021 but at a diminishing rate.
